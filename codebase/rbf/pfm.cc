@@ -10,9 +10,12 @@ PagedFileManager* PagedFileManager::instance()
     return _pf_manager;
 }
 
-
 PagedFileManager::PagedFileManager()
 {
+    // see page 325 in text
+    // linked list heap file implementation? Keep name of header pages in known file (index) then 
+    // on each page have next & prev page of the file so we can navigate
+    // header pages have 2 links, 1 to full pages 1 to pages with free space
 }
 
 
@@ -23,7 +26,26 @@ PagedFileManager::~PagedFileManager()
 
 RC PagedFileManager::createFile(const string &fileName)
 {
-    return -1;
+    char buffer [50];
+    int n = sprintf (buffer, "%s \n", fileName.c_str()); 
+
+    // track the file in index
+    FILE * name_fh = fopen( "file_names", "ab" ); 
+
+    // creating an already existing file should fail..
+    // char aWord[50];
+    // while (name_fh.good()) {
+    //     name_fh>>aWord;
+    //     if (name_fh.good() && strcmp(aWord, fileName.c_str()) == 0) {
+    //         fclose(name_fh);
+    //         return -1;
+    //     }
+    // }
+    
+    fputs(buffer, name_fh);
+    fclose(name_fh);
+
+    fclose(fopen(fileName.c_str(), "wb")); // create the file
 }
 
 
