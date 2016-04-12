@@ -1,4 +1,7 @@
 #include "pfm.h"
+#include <fstream>
+#include <string>
+#include <iostream>
 
 PagedFileManager* PagedFileManager::_pf_manager = 0;
 
@@ -23,34 +26,40 @@ PagedFileManager::~PagedFileManager()
 {
 }
 
+bool exists(const string &fileName){
+    ifstream file("file_names");
+    char aWord[50];
+    while (file.good()) {
+        file>>aWord;
+        if (file.good() && strcmp(aWord, fileName.c_str()) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
 
 RC PagedFileManager::createFile(const string &fileName)
 {
+    // check to see if file already written
+    if( exists(fileName) ){ return -1; }
+    // format the string we want to write into the index
     char buffer [50];
-    int n = sprintf (buffer, "%s \n", fileName.c_str()); 
+    int n = sprintf (buffer, "%s\n", fileName.c_str());  
 
     // track the file in index
     FILE * name_fh = fopen( "file_names", "ab" ); 
-
-    // creating an already existing file should fail..
-    // char aWord[50];
-    // while (name_fh.good()) {
-    //     name_fh>>aWord;
-    //     if (name_fh.good() && strcmp(aWord, fileName.c_str()) == 0) {
-    //         fclose(name_fh);
-    //         return -1;
-    //     }
-    // }
-    
     fputs(buffer, name_fh);
     fclose(name_fh);
 
     fclose(fopen(fileName.c_str(), "wb")); // create the file
+
+    return 0;
 }
 
 
 RC PagedFileManager::destroyFile(const string &fileName)
 {
+    //In progress --cj
     return -1;
 }
 
