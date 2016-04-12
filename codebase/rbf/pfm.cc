@@ -59,8 +59,9 @@ RC PagedFileManager::createFile(const string &fileName)
 
 RC PagedFileManager::destroyFile(const string &fileName)
 {
-    //In progress --cj
-    return -1;
+    //if( !exists(fileName) ){ return -1; }
+    remove(fileName.c_str());
+    return 0;
 }
 
 
