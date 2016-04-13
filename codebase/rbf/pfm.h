@@ -8,6 +8,8 @@ typedef char byte;
 #define PAGE_SIZE 4096
 #include <string>
 #include <climits>
+#include <iostream>
+#include <fstream>
 using namespace std;
 
 class FileHandle;
@@ -38,6 +40,9 @@ public:
 	unsigned readPageCounter;
 	unsigned writePageCounter;
 	unsigned appendPageCounter;
+
+    // Pointer to file associated with the handle
+    FILE *file;
 	
     FileHandle();                                                    	// Default constructor
     ~FileHandle();                                                   	// Destructor
