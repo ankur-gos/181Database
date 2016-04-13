@@ -87,7 +87,7 @@ RC PagedFileManager::closeFile(FileHandle &fileHandle)
     if(fileHandle.file == NULL){
         return -1;
     }
-    int fd = filno(fileHandle.file);
+    int fd = fileno(fileHandle.file);
     // fsync syncs with the disk
     int err = fsync(fd);
     if(err != 0){
