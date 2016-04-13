@@ -2,6 +2,8 @@
 #include <fstream>
 #include <string>
 #include <iostream>
+#include <unistd.h>
+#include <stdio.h>
 
 PagedFileManager* PagedFileManager::_pf_manager = 0;
 
@@ -84,6 +86,12 @@ RC PagedFileManager::closeFile(FileHandle &fileHandle)
 {
     if(fileHandle.file == NULL){
         return -1;
+    }
+    int fd = filno(fileHandle.file);
+    // fsync syncs with the disk
+    int err = fsync(fd);
+    if(err != 0){
+        return err;
     }
     fclose(fileHandle.file);
     fileHandle.file = NULL;
