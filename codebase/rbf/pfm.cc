@@ -82,7 +82,12 @@ RC PagedFileManager::openFile(const string &fileName, FileHandle &fileHandle)
 
 RC PagedFileManager::closeFile(FileHandle &fileHandle)
 {
-    return -1;
+    if(fileHandle.file == NULL){
+        return -1;
+    }
+    fclose(fileHandle.file);
+    fileHandle.file = NULL;
+    return 0;
 }
 
 
@@ -91,6 +96,7 @@ FileHandle::FileHandle()
 	readPageCounter = 0;
 	writePageCounter = 0;
 	appendPageCounter = 0;
+    file = NULL;
 }
 
 
@@ -119,7 +125,15 @@ RC FileHandle::appendPage(const void *data)
 
 unsigned FileHandle::getNumberOfPages()
 {
-    return -1;
+    // Get the file size in bytes, divide it by the page size to get the number of pages
+    FILE *f = this->file;
+    if(file == NULL){
+        return -1;
+    }
+    fseek(f, 0, SEEK_END);
+    long size = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    return size / PAGE_SIZE;
 }
 
 
