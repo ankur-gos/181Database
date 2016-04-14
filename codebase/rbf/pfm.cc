@@ -120,24 +120,51 @@ RC FileHandle::readPage(PageNum pageNum, void *data)
     if(pageNum > this->getNumberOfPages()){
         return -1;
     }
-    // Seek to the right page, read the page, seek back to beginning/
+    // Seek to the right page, read the page, seek back to beginning.
     fseek(this->file, pageNum * PAGE_SIZE, SEEK_SET);
-    size_t err = fread(data, 1, PAGE_SIZE, this->file);
+    fread(data, 1, PAGE_SIZE, this->file);
     fseek(this->file, 0, SEEK_SET);
+
     readPageCounter = readPageCounter + 1;
     return 0;
 }
 
+RC FileHandle::writeAndFlush(long offset, int location, const void *data){
+    if(this->file == NULL){
+        return -1;
+    }
+    fseek(this->file, offset, location);
+    fwrite(data, 1, PAGE_SIZE, this->file);
+    fseek(this->file, 0, SEEK_SET);
+    int err = fflush(file);
+    if(err != 0){
+        return err;
+    }
+    return 0;
+}
 
 RC FileHandle::writePage(PageNum pageNum, const void *data)
 {
-    return -1;
+    if(pageNum > this->getNumberOfPages()){
+        return -1;
+    }
+    RC err = this->writeAndFlush(pageNum * PAGE_SIZE, SEEK_SET, data);
+    if(err != 0){
+        return err;
+    }
+    writePageCounter = writePageCounter + 1;
+    return 0;
 }
 
 
 RC FileHandle::appendPage(const void *data)
 {
-    return -1;
+    RC err = this->writeAndFlush(0, SEEK_END, data);
+    if(err != 0){
+        return err;
+    }
+    appendPageCounter = appendPageCounter + 1;
+    return 0;
 }
 
 
@@ -157,5 +184,8 @@ unsigned FileHandle::getNumberOfPages()
 
 RC FileHandle::collectCounterValues(unsigned &readPageCount, unsigned &writePageCount, unsigned &appendPageCount)
 {
-	return -1;
+    readPageCount = readPageCounter;
+    writePageCount = writePageCounter;
+    appendPageCount = appendPageCounter;
+	return 0;
 }
