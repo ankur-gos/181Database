@@ -113,7 +113,19 @@ FileHandle::~FileHandle()
 
 RC FileHandle::readPage(PageNum pageNum, void *data)
 {
-    return -1;
+    if(this->file == NULL){
+        return -1;
+    }
+
+    if(pageNum > this->getNumberOfPages()){
+        return -1;
+    }
+    // Seek to the right page, read the page, seek back to beginning/
+    fseek(this->file, pageNum * PAGE_SIZE, SEEK_SET);
+    size_t err = fread(data, 1, PAGE_SIZE, this->file);
+    fseek(this->file, 0, SEEK_SET);
+    readPageCounter = readPageCounter + 1;
+    return 0;
 }
 
 
