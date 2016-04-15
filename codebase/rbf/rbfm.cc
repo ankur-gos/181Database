@@ -18,18 +18,22 @@ RecordBasedFileManager::~RecordBasedFileManager()
 }
 
 RC RecordBasedFileManager::createFile(const string &fileName) {
+    // to be implemented in project 1
     return -1;
 }
 
 RC RecordBasedFileManager::destroyFile(const string &fileName) {
+    // to be implemented in project 1
     return -1;
 }
 
 RC RecordBasedFileManager::openFile(const string &fileName, FileHandle &fileHandle) {
+    // to be implemented in project 1
     return -1;
 }
 
 RC RecordBasedFileManager::closeFile(FileHandle &fileHandle) {
+    // to be implemented in project 1
     return -1;
 }
 
