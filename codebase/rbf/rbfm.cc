@@ -1,5 +1,6 @@
 #include "rbfm.h"
 #include "pfm.h"
+#include <math.h>	//for ceiling()
 
 RecordBasedFileManager* RecordBasedFileManager::_rbf_manager = 0;
 
@@ -83,30 +84,30 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 		An RID here is the record id which is used to uniquely identify records in a file
 	*/
 	
-	int numPages = -1;	//to find last page in the file
+/*	int numPages = -1;	//to find last page in the file
 	RC err = 0;			//to store most recent error
 	
 	int numAttr = recordDescriptor.size();	//get the number of attributes to find the number of bytes needed to describe the null attributes
 	int numNullBytes = ceil(numAttr/8);		//get the number of null bytes
 	int nullAttr = 	/**fix me		**/				//get which attributes are null
 	
-	int numPages = fileHandle->getNumberOfPages();
+/*	int numPages = fileHandle->getNumberOfPages();
 	int err = fileHandle->writePage(numPages-1, 	///How do I determine the slot the file is written to.
 	if (err != 0)	
 	{
-		if (err == /**page full**/)	/*page full*/
-		{
-			/**need to scan for new location here**/;	//scan for open slot elsewhere.
-		}
+		if (err == /**page full**///)	/*page full*/
+/*		{
+			/**need to scan for new location here**/	//scan for open slot elsewhere.
+/*		}
 		else return (1);	//return error code, for bad write
 	}
 
 	
 	
 	
-	rid.pageNum = /**get page from somewhere**/;	//something
-	rid.slotNum = /**get slot from somewhere**/;	//something so that the record can be found again in the future
-    return -1;
+	rid.pageNum = /**get page from somewhere**/	//something
+/*	rid.slotNum = /**get slot from somewhere**/	//something so that the record can be found again in the future
+      return -1;
 }
 
 RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const RID &rid, void *data) {
@@ -115,6 +116,32 @@ RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attri
 }
 
 RC RecordBasedFileManager::printRecord(const vector<Attribute> &recordDescriptor, const void *data) {
-    // to be implemented in project 1
-    return -1;
+	RC err = 0;			//to store most recent error
+	
+	int numAttr = recordDescriptor.size();	//get the number of attributes to find the number of bytes needed to describe the null attributes
+	int numNullBytes = ceil(numAttr/8);		//get the number of null bytes
+	vector<char> nullBytes;	//stores the bytes representing null attributes
+	vector<bool> nullAttr;	//stores the bits representing null attributes after they've been split apart from bytes.
+	
+	//extracting the null bytes
+	for(int i = 0; i < numNullBytes; i++)
+	{
+		nullBytes[i] = &(char*)data[i];			//get which attributes are null
+	}
+	
+	//extracting the null bits
+	for(int i = 0; i<numNullBytes; i++)
+		int curBit = 1;
+		for(char j = 0; j<8; j++)
+		{
+			if (curBit == nullBytes[i] & curBit)	//if the bit we're looking at is 1, then the value of attribute j is null
+			{
+				nullAttr[j] = 1;
+			}
+			curBit = curbit*2;	//double current bit, making it look like the next bit.
+		}
+	
+	
+	
+    return 0;
 }

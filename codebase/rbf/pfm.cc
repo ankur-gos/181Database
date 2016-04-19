@@ -1,6 +1,7 @@
 #include "pfm.h"
 #include <fstream>
 #include <string>
+#include <cstring>	//needed to add to get strcmp working
 #include <iostream>
 #include <unistd.h>
 #include <stdio.h>
