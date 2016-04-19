@@ -40,6 +40,21 @@ bool exists(const string &fileName){
     return false;
 }
 
+void deleteEntry(const string &fileName){
+    // copy all lines not matching the fileName into a temp file then rename temp->file_name
+    FILE * temp_fh = fopen( "temp", "wb" ); 
+    ifstream file("file_names");
+    char aWord[50];
+    while (file.good()) {
+        file>>aWord;
+        if (file.good() && strcmp(aWord, fileName.c_str()) != 0) {
+            fputs(aWord, temp_fh);
+        }
+    }
+    remove("file_names");
+    rename("temp", "file_names");
+}
+
 RC PagedFileManager::createFile(const string &fileName)
 {
     // check to see if file already written
@@ -62,6 +77,7 @@ RC PagedFileManager::createFile(const string &fileName)
 RC PagedFileManager::destroyFile(const string &fileName)
 {
     //if( !exists(fileName) ){ return -1; }
+    deleteEntry(fileName);
     remove(fileName.c_str());
     return 0;
 }
