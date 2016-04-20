@@ -84,35 +84,28 @@ RC RecordBasedFileManager::printRecord(const vector<Attribute> &recordDescriptor
 	vector<bool> nullAttr;	//stores the bits representing null attributes after they've been split apart from bytes.
 
 	//make the vectors large enough
-	nullBytes.resize(numNullBytes);	
+	nullBytes.resize(numNullBytes*10);	
 	nullAttr.resize(numNullBytes*8);
-
-
-	//extracting the null bytes
-	for(int i = 0; i < numNullBytes; i++)
-	{
-		nullBytes[i] = ((char*)data)[i];/**fix me**/			//get which attributes are null
-	}
 	
 	//extracting the null bits
 	for(int i = 0; i < numNullBytes; i++)
 	{
-		int curBit = 128; //for tracking the current bit when anding it with the nullBytes
+		char* aByte = (char *) malloc(sizeof(char*)+1);
+		unsigned int curBit = 1<<(7); //for tracking the current bit when anding it with the nullBytes		
+		aByte = (char *) data; 
+
 		for(int j = 0; j<8; j++)
 		{
-			if (curBit == (nullBytes[i] & curBit))	//if the bit we're looking at is 1, then the value of attribute j is null
+			int bitwise = (*aByte & curBit);
+			if (curBit == bitwise)	//if the bit we're looking at is 1, then the value of attribute j is null
 			{
 				nullAttr[j] = 1;
 			}
 			else nullAttr[j] = 0;
-			curBit = curBit/2;	//double current bit, making it look like the next bit.
+			curBit = curBit>>1;	//double current bit, making it look like the next bit.
 		}
 	}
 
-	for(int i = 0; i<numAttr; i++)
-	{
-		cout<<nullBytes[i]<<" "<<nullAttr[i]<<endl;
-	}
 
 	
 	//print rest.
@@ -120,7 +113,7 @@ RC RecordBasedFileManager::printRecord(const vector<Attribute> &recordDescriptor
 	{
 		string attrName = recordDescriptor[i].name;
 		unsigned length = recordDescriptor[i].length;	//length is in # of bytes
-		int offset = ((i * length * sizeof(char)) + (numNullBytes*sizeof(char)));
+		int offset = (((i+1) * length * sizeof(char)) + (numNullBytes*sizeof(char)));
 		
 		cout<<attrName<<": ";
 		if (nullAttr[i] == 1)
@@ -131,13 +124,13 @@ RC RecordBasedFileManager::printRecord(const vector<Attribute> &recordDescriptor
 		{
 			case 0 : 	int dataInt;
 					dataInt = *(int*)((char*)data + offset);
-					cout<<": "<<dataInt<<" ";
+					cout<<dataInt<<" ";
 					break;
 			case 1 :	float dataFloat;
 					dataFloat = *(float*)((char*)data + offset);
-					cout<<": "<<dataFloat<<" ";
+					cout<<dataFloat<<" ";
 					break;
-			case 2 :	string dataVarChar;	/**fix me**/
+/* not working*/	case 2 :	string dataVarChar;	/**fix me**/
 					char* tempChar = (char*)malloc(length * sizeof(char)); 
 				
 					strncpy(tempChar, (char*)((char*)data + offset), length);
@@ -151,7 +144,5 @@ RC RecordBasedFileManager::printRecord(const vector<Attribute> &recordDescriptor
 		}
 	} 
 	cout<<endl;
-	
-	
     return 0;
 }
