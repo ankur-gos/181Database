@@ -1,6 +1,7 @@
 #include "rbfm.h"
 #include "pfm.h"
 #include <math.h>	//for ceiling()
+#include <cstring>	//for memcpy
 
 RecordBasedFileManager* RecordBasedFileManager::_rbf_manager = 0;
 
@@ -23,7 +24,7 @@ RecordBasedFileManager::~RecordBasedFileManager()
 
 RC RecordBasedFileManager::createFile(const string &fileName) {
     _page_manager->createFile(fileName);
-    return 0;
+	return 0;
 }
 
 RC RecordBasedFileManager::destroyFile(const string &fileName) {
@@ -42,47 +43,6 @@ RC RecordBasedFileManager::closeFile(FileHandle &fileHandle) {
 }
 
 RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const void *data, RID &rid) {
-    /*input notes
-	We have a vector<attribute> which contains a collection of attribute structs
-		attribute contains:
-			string name
-			attrType type
-				enumerated as {int, real, varchar}
-			attrLength length
-				unsigned int 
-	
-	Then we have a pointer to data which is a pointer to a void type
-		to dereference a void type, we need to recast it as what ever type it is, i.e. (int *)data
-	Then we have an RID which contains		we return this
-		unsigned pageNum	//int is assumed without another type
-		unsigned slotNum	//int is assumed without another type
-	*/
-	
-	/*insertRecord notes
-	insert record into given file 
-	assume input is error free
-	to handle nulls, the first part of *data has n bytes for passing the null info
-		n can be calculated through the this formula:
-			ceil(# of fields in record/8)
-			i.e. 5 fields is ceil(5/8) = 1 bytes
-			we can determine # of fields by getting the size of the given vector
-		the left most bit in the first byte corresponds to the first field
-		the right most bit in the first byte corresponds to the eight field
-		the left most bit in the first byte corresponds to the ninth field and so on
-		if the corresponding bit to each field is set to 1, then the actual data does not contain any value for this field
-		if there are three fields in a record and the second field contains null, the bit representation  in a byte is 01000000
-		in addition, in the actual data, the incoming record contains the first and the third values only. 
-		that is, the third field value is placed right after the first field value in thsi case.
-	
-	This format (null fields + actual data) is to be used for all record manipulation operations (unless otherwise stated)
-		when a record is read, the first part of what you return should contain a null fields indicator
-		
-	File structure is a heap file, and you may use a system-sequenced file organization
-		i.e. if the last page has enough space, insert a new record into this page.
-		if not, find the first page with free space large enough to store the record, looking from the beginning of the file (not the page)
-		
-		An RID here is the record id which is used to uniquely identify records in a file
-	*/
 	
 /*	int numPages = -1;	//to find last page in the file
 	RC err = 0;			//to store most recent error
@@ -119,28 +79,78 @@ RC RecordBasedFileManager::printRecord(const vector<Attribute> &recordDescriptor
 	RC err = 0;			//to store most recent error
 	
 	int numAttr = recordDescriptor.size();	//get the number of attributes to find the number of bytes needed to describe the null attributes
-	int numNullBytes = ceil(numAttr/8);		//get the number of null bytes
+	int numNullBytes = ceil((float)(numAttr)/8);		//get the number of null bytes
 	vector<char> nullBytes;	//stores the bytes representing null attributes
 	vector<bool> nullAttr;	//stores the bits representing null attributes after they've been split apart from bytes.
-	
+
+	//make the vectors large enough
+	nullBytes.resize(numNullBytes);	
+	nullAttr.resize(numNullBytes*8);
+
+
 	//extracting the null bytes
 	for(int i = 0; i < numNullBytes; i++)
 	{
-		nullBytes[i] = &(char*)data[i];			//get which attributes are null
+		nullBytes[i] = ((char*)data)[i];/**fix me**/			//get which attributes are null
 	}
 	
 	//extracting the null bits
-	for(int i = 0; i<numNullBytes; i++)
-		int curBit = 1;
-		for(char j = 0; j<8; j++)
+	for(int i = 0; i < numNullBytes; i++)
+	{
+		int curBit = 128; //for tracking the current bit when anding it with the nullBytes
+		for(int j = 0; j<8; j++)
 		{
-			if (curBit == nullBytes[i] & curBit)	//if the bit we're looking at is 1, then the value of attribute j is null
+			if (curBit == (nullBytes[i] & curBit))	//if the bit we're looking at is 1, then the value of attribute j is null
 			{
 				nullAttr[j] = 1;
 			}
-			curBit = curbit*2;	//double current bit, making it look like the next bit.
+			else nullAttr[j] = 0;
+			curBit = curBit/2;	//double current bit, making it look like the next bit.
 		}
+	}
+
+	for(int i = 0; i<numAttr; i++)
+	{
+		cout<<nullBytes[i]<<" "<<nullAttr[i]<<endl;
+	}
+
 	
+	//print rest.
+	for (int i = 0; i < numAttr; i++)
+	{
+		string attrName = recordDescriptor[i].name;
+		unsigned length = recordDescriptor[i].length;	//length is in # of bytes
+		int offset = ((i * length * sizeof(char)) + (numNullBytes*sizeof(char)));
+		
+		cout<<attrName<<": ";
+		if (nullAttr[i] == 1)
+		{
+			cout<<"NULL ";
+		}
+		else switch(recordDescriptor[i].type)
+		{
+			case 0 : 	int dataInt;
+					dataInt = *(int*)((char*)data + offset);
+					cout<<": "<<dataInt<<" ";
+					break;
+			case 1 :	float dataFloat;
+					dataFloat = *(float*)((char*)data + offset);
+					cout<<": "<<dataFloat<<" ";
+					break;
+			case 2 :	string dataVarChar;	/**fix me**/
+					char* tempChar = (char*)malloc(length * sizeof(char)); 
+				
+					strncpy(tempChar, (char*)((char*)data + offset), length);
+				
+					dataVarChar.assign((char*)((char*)data), length);
+				
+					memcpy((void*)tempChar,(void*)((char*)data+offset), length*sizeof(char)); 
+				
+					printf("%s ", tempChar);
+					break;
+		}
+	} 
+	cout<<endl;
 	
 	
     return 0;
