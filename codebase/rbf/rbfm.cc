@@ -78,41 +78,6 @@ RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attri
 RC RecordBasedFileManager::printRecord(const vector<Attribute> &recordDescriptor, const void *data) {
 	RC err = 0;			//to store most recent error
 	
-/*	int numAttr = recordDescriptor.size();	//get the number of attributes to find the number of bytes needed to describe the null attributes
-	int numNullBytes = ceil((float)(numAttr)/8);		//get the number of null bytes
-	vector<char> nullBytes;	//stores the bytes representing null attributes
-	vector<bool> nullAttr;	//stores the bits representing null attributes after they've been split apart from bytes.
-
-	//make the vectors large enough
-	nullBytes.resize(numNullBytes*10);	
-	nullAttr.resize(numNullBytes*8);
-	
-	//extracting the null bits
-	for(int i = 0; i < numNullBytes; i++)
-	{
-		char* aByte = (char *) malloc(sizeof(char*)+1);
-		int curBit = 0x80; //for tracking the current bit when anding it with the nullBytes		
-		aByte = (char *) data; 
-
-		void* aByte2 = malloc(numNullBytes);
-
-		memcpy(aByte2, data, numNullBytes);
-
-		for(int j = 0; j<8; j++)
-		{
-			int bitwise = ((*((char*)aByte2)) & curBit);
-			if (curBit == bitwise)	//if the bit we're looking at is 1, then the value of attribute j is null
-			{
-				nullAttr[j] = 1;
-			}
-			else nullAttr[j] = 0;
-			curBit = curBit>>1;	//double current bit, making it look like the next bit.
-		}
-	}
-*/
-	//round 2, fight
-	//
-	//
 	int numAttr = recordDescriptor.size();		//get the number of attributes to find the number of bytes needed to describe the null attributes of the record
 	int numNullBytes = ceil((float)(numAttr)/8.0);	//get the number of null bytes
 	char* nullBytes;	//store the bytes representing null attributes;
@@ -124,10 +89,12 @@ RC RecordBasedFileManager::printRecord(const vector<Attribute> &recordDescriptor
 
 	memcpy((void*)nullBytes, data, numNullBytes); //copy the number of null bytes from data into our nullBytes char array, filling nullBytes
 
+	//grabbing null attributes
 	for(int i = 0; i < numNullBytes; i++)
 	{	
 		//curBit starts at 128, 10000000 in binary, for ANDing with the bytes later
 		//decreases by a factor of 2 each time, 01000000, 00100000 and so on.
+		//when nullBytes is ANDed with curBit, it determines if the bit we're interested in is currently on and if so stores that truth in the nullAttr array
 		int curBit = 0x80;
 
 		for(int j = 0; j < 8; j++)	
@@ -136,23 +103,19 @@ RC RecordBasedFileManager::printRecord(const vector<Attribute> &recordDescriptor
 			{
 				nullAttr[j] = 1;
 			}
-			else nullAttr[j] = 0;
-			
-			cout<<curBit<<" "<<nullAttr[j]<<" "<<(curBit & *(nullBytes /*+ i*sizeof(char)*/))<<endl;
-			curBit = curBit>>1;
-			
+			else nullAttr[j] = 0;	
+			curBit = curBit>>1;		
 		}
 	}	
 
 
 	
 	//print rest.
-	unsigned auxOffset = numNullBytes*sizeof(char);
+	unsigned offset = numNullBytes*sizeof(char);
 	for (int i = 0; i < numAttr; i++)
 	{
 		string attrName = recordDescriptor[i].name;
 		unsigned length = recordDescriptor[i].length;	//length is in # of bytes
-		unsigned offset =  auxOffset;
 			
 		cout<<attrName<<": ";
 		if (nullAttr[i] == 1)
@@ -161,17 +124,49 @@ RC RecordBasedFileManager::printRecord(const vector<Attribute> &recordDescriptor
 		}
 		else switch(recordDescriptor[i].type)
 		{
-			case 0 : 	int dataInt;
-					cout<<dataInt<<" ";
+			case 0 : 	int* dataInt;
+					dataInt = (int*)malloc(sizeof(int));
+
+					//this is stupidly complex, so here's what's supposed happening.
+					//the pointer to the int is cast to a void pointer so it can be used by memcpy
+					//the pointer to data is cast to a char so it can be offset and then recast as a void so that it can be used by memcpy 
+					memcpy((void*)dataInt, (void*)(((char*)data)+offset), sizeof(int));
+	
+					
+					cout<<*dataInt<<" ";
+					
+					offset = offset + length*sizeof(char);
+					free (dataInt);
 					break;
-			case 1 :	float dataFloat;
-					cout<<dataFloat<<" ";
+			
+			case 1 :	float* dataFloat;
+					dataFloat = (float*)malloc(length * sizeof(char));
+					memcpy((void*)dataFloat, (void*)((char*)data+offset), length);
+					cout<<*dataFloat<<" ";
+					
+					free (dataFloat);
+					offset = length*sizeof(char) + offset;
 					break;
-			case 2 :		
+			
+			case 2 :	int* dataVarCharLength;
+					string dataVarChar;
+
+					dataVarCharLength = (int*) malloc (sizeof(int));
+
+					//VAR CHAR IS NOT ACTUALLY AS LONG AS RECORDDESCRIPTOR.LENGTH() SAYS IT IS, that's just the max length. IT'S SPECIFIED. FUCK, so much time wasted!
+					//THE FIRST 4 BYTES ARE THE LENGTH.
+					memcpy((void*)dataVarCharLength,(void*)((char*)data+offset), sizeof(int));
+					dataVarChar.assign(((const char*)data+offset+sizeof(int)),  *dataVarCharLength);		
+					//seriously, fuck this was so annoying
+
+					cout<<dataVarChar<<" ";
+					offset = *dataVarCharLength + sizeof(int) + offset;
 					break;
 		}
-		auxOffset = length*sizeof(char) + auxOffset;
 	} 
 	cout<<endl;
+
+	//garbage collection
+	free (nullBytes);
     return 0;
 }
