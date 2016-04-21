@@ -91,12 +91,16 @@ RC RecordBasedFileManager::printRecord(const vector<Attribute> &recordDescriptor
 	for(int i = 0; i < numNullBytes; i++)
 	{
 		char* aByte = (char *) malloc(sizeof(char*)+1);
-		unsigned int curBit = 1<<(7); //for tracking the current bit when anding it with the nullBytes		
+		int curBit = 0xA0; //for tracking the current bit when anding it with the nullBytes		
 		aByte = (char *) data; 
+
+		void* aByte2 = malloc(numNullBytes);
+
+		memcpy(aByte2, data, numNullBytes);
 
 		for(int j = 0; j<8; j++)
 		{
-			int bitwise = (*aByte & curBit);
+			int bitwise = ((*((char*)aByte)) & curBit);
 			if (curBit == bitwise)	//if the bit we're looking at is 1, then the value of attribute j is null
 			{
 				nullAttr[j] = 1;
@@ -109,12 +113,13 @@ RC RecordBasedFileManager::printRecord(const vector<Attribute> &recordDescriptor
 
 	
 	//print rest.
+	unsigned auxOffset = numNullBytes;
 	for (int i = 0; i < numAttr; i++)
 	{
 		string attrName = recordDescriptor[i].name;
 		unsigned length = recordDescriptor[i].length;	//length is in # of bytes
-		int offset = (((i+1) * length * sizeof(char)) + (numNullBytes*sizeof(char)));
-		
+		unsigned offset =  auxOffset;
+			
 		cout<<attrName<<": ";
 		if (nullAttr[i] == 1)
 		{
@@ -142,6 +147,7 @@ RC RecordBasedFileManager::printRecord(const vector<Attribute> &recordDescriptor
 					printf("%s ", tempChar);
 					break;
 		}
+		auxOffset = length + auxOffset;
 	} 
 	cout<<endl;
     return 0;
