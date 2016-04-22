@@ -200,7 +200,7 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 		string attrName = recordDescriptor[i].name;
 		unsigned length = 4;	//I know there's a length in the recordDescriptor, but we always grab 4 bytes in the first grab of this program for varChar, int, and float
 			 //length = recordDescriptor[i].length;	//length is in # of bytes
-		cout<<attrName<<": ";
+		cerr<<attrName<<": ";
 		//if null, indicate that in the record
 		if (nullAttr[i] == 1)
 		{
@@ -223,6 +223,7 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
             			}
             			//slots[ridSlot]
 						putField(record, total_length, sizeof(int), dataField);
+                        cerr<<*(int*)dataField;
 
 					}
 						break;
@@ -235,6 +236,7 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
                             				slots[j] -= sizeof(int);
                         			}
                         			putField(record, total_length, sizeof(float), dataField);
+                                    cerr<<*(float*)dataField;
 					}	
 						break;
 			
@@ -245,7 +247,10 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 
 						getField(data, offset+sizeof(int), *(int*)dataVarCharLength, dataField);
 						dataVarChar.assign((char*)dataField, *(int*)dataVarCharLength);		
-
+                        cerr<<dataVarChar;
+                        cerr<<"\n";
+                        cerr<<*(int*)dataVarCharLength;
+                        cerr<<"\n";
 						// append dataVarChar, update each slot -= length, set our slot to end -= length
 
 						//the total length is not just the initial 4 bytes, but also the length of the VarChar
@@ -254,15 +259,18 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
                             // we update slot[record]<slot[current]
                             slots[j] -= *(int*)dataVarCharLength;
                         }
-                        putField(record, total_length, *(int*)dataVarCharLength, dataField);
+                        // record is not being written to correctly
+                        putField(record, total_length, sizeof(int), dataVarCharLength);
+                        cerr<<*(char*)record;
+                        cerr<<"asdfdsfdf";
                         for (int j = ridSlot+i+1; j>ridSlot; j--){
                             //each record's offset is affected by subsequent records so
                             // we update slot[record]<slot[current]
                             slots[j] -= sizeof(int);
                         }
 
-						putField(record, total_length+sizeof(int), sizeof(int), dataVarCharLength);
-                        length = length + *(int*)dataVarCharLength;
+						putField(record, total_length+sizeof(int), *(int*)dataVarCharLength, dataField);
+                        length = length + *(int*)dataVarCharLength*sizeof(char); //leading int already factored in
 						free (dataVarCharLength);
 					}
 						break;
@@ -270,6 +278,17 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 			free (dataField);
 			offset = offset + length;
 			total_length += length;
+
+            cerr<<"\n";
+            cerr<<"offset : ";
+            cerr<<offset;
+            cerr<<"\n";
+            cerr<<"length : ";
+            cerr<<length;
+            cerr<<"\n";
+            cerr<<"total len : ";
+            cerr<<total_length;
+            cerr<<"\n";
 		}
 	}
     putField(page, slots[ridSlot], total_length, record);//update record
