@@ -128,12 +128,39 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 		return (2);	//return error, bad null bytes, currently no way of getting here either. if you receive this error, something serious has broken
 	}
 
+	void *page = malloc(PAGE_SIZE);
+	void *offset = malloc(sizeof(int));
+	int slots [100];
+	// not tracking free space for now. 
+	fileHandle.readPage(1, page);
+	for (int = 0; i<100; i++){
+		getField(page, i*sizeof(int), sizeof(int), offset);
+		slots[i] = *(int*)offset;
+	}
+	// each slot in the slot array now points to its record. 0=free
+
+	int ridSlot = 0;
+	int smallestOffset = PAGE_SIZE; //find closest record so we can insert directly before it. our record will be at offset-length of our record
+	for (int = 0; i<100; i++){
+		if (slots[i] == 0)
+		{
+			ridSlot = i;
+			slots[i] = PAGE_SIZE; //offset directs us to end of file now, will be set accurately once we know length of record
+		}
+		else {if (slots[i] < smallestOffset)
+		{
+			smallestOffset = slots[i];
+		}}
+		
+	}
+	
 	unsigned offset = numNullBytes*sizeof(char);
 	for (int i = 0; i < numAttr; i++)
 	{
 		string attrName = recordDescriptor[i].name;
 		unsigned length = 4;	//I know there's a length in the recordDescriptor, but we always grab 4 bytes in the first grab of this program for varChar, int, and float
 			 //length = recordDescriptor[i].length;	//length is in # of bytes
+		int total_length = 0;
 		cout<<attrName<<": ";
 		//if null, indicate that in the record
 		if (nullAttr[i] == 1)
@@ -150,7 +177,9 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 			{
 				case 0 :	
 					{
-						/*stuff to put an int into the record*/
+						//int. dataField points to the int. now write into page.
+						putField(page, ) 
+
 					}
 						break;
 			
@@ -168,7 +197,8 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 						getField(data, offset+sizeof(int), *(int*)dataVarCharLength, dataField);
 						dataVarChar.assign((char*)dataField, *(int*)dataVarCharLength);		
 
-						/*stuff to put a var char into the record*/
+						fileHandle.write(0, SEEK_END, dataVarChar);
+						// append dataVarChar, update each slot -= length, set our slot to end -= length
 
 						//the total length is not just the initial 4 bytes, but also the length of the VarChar
 						length = length + *(int*)dataVarCharLength;
@@ -178,14 +208,12 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 			}
 			free (dataField);
 			offset = offset + length;
+			total_length += length;
 		}
-	} 
-
-	
-	
-	
-//	rid.pageNum = 	//something
-//	rid.slotNum = 	//something so that the record can be found again in the future
+	}
+	// set slots with updated offsets
+	rid.pageNum = 
+	rid.slotNum = 
       return -1;
 }
 
