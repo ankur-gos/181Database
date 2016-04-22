@@ -122,7 +122,7 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 	
 	int numAttr = recordDescriptor.size();	//get the number of attributes to find the number of bytes needed to describe the null attributes
 	int numNullBytes = ceil((float)numAttr/8.0);		//get the number of null bytes
-	void* nullBytes;	
+	void* nullBytes;
 	vector<bool> nullAttr;
 	err = getField(data, 0, numNullBytes, nullBytes); //get nullBytes
 	if (err != 0)
@@ -158,20 +158,40 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
     // numberattributes + 1 = slots per record
 	int ridSlot = 0;
 	int smallestOffset = PAGE_SIZE; //find closest record so we can insert directly before it. our record will be at offset-length of our record
+    int ridFlag = 1;
 	for (int i = 0; i<100; i++){
 		if (slots[i] == 0)
 		{
-			ridSlot = i;
-			slots[i] = numAttr; 
+            int breakflag = 0;
+            // check if there are enough slots for this record
+            for(int j = i+1; j <= i + numAttr; j++){
+                if(slots[j] != 0){
+                    breakflag = 1;
+                    break;
+                }
+            }
+            if(breakflag)
+                break;
+            // Great, we've found an empty location we can insert into
+            if(ridFlag){
+                ridSlot = i;
+                // Can't have a negative offset
+                // Lets us diffferentiate between an numAttr slot
+                // and an offset slot for smallestOffset
+                slots[i] = -numAttr - 1;
+                ridFlag = 0;
+            }
 		}
-		else {if (slots[i] < smallestOffset)
-		{
-			smallestOffset = slots[i];
-		}}
-		
+		else {
+            if (slots[i] < smallestOffset && slots[i] > 0)
+			    smallestOffset = slots[i];
+		}
 	}
+    slots[ridSlot + 1] = smallestOffset;
+    // To determine the offset of our first field, we'll need to lookup what is at the smallestOffset and calculate its size
     for (int i =1; i<=numAttr; i++){
         slots[ridSlot+i] = smallestOffset;
+        // Update smallest offset
     }
 	int total_length = 0;
 	unsigned offset = numNullBytes*sizeof(char);
@@ -185,7 +205,7 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 		if (nullAttr[i] == 1)
 		{
 			//negative offset in slot table == null
-            		slots[i+1] = -1;
+            slots[i+1] = -1;
 		}
 		//else, store the value
 		else 
@@ -196,12 +216,12 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 			{
 				case 0 :	
 					{
-                        			for (int j = ridSlot+i+1; j>ridSlot; j--){
-                           			//each record's offset is affected by subsequent records so
-                            			// we update slot[record]<slot[current]
-                            			slots[j] -= sizeof(int);
-                        			}
-                        			//slots[ridSlot]
+            			for (int j = ridSlot+i+1; j>ridSlot; j--){
+               			//each record's offset is affected by subsequent records so
+                			// we update slot[record]<slot[current]
+                			slots[j] -= sizeof(int);
+            			}
+            			//slots[ridSlot]
 						putField(record, total_length, sizeof(int), dataField);
 
 					}
