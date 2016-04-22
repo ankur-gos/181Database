@@ -149,7 +149,7 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
     // filed with data, we can calculate free space = page_size - smallest_offset - slot table
     // if we see there isnt' enough space, we can change page number.
     // put this page determination in a loop.
-	fileHandle.readPage(1, page);
+	fileHandle.readPage(1, page);	//hard coded page num
 	for (int i = 0; i<100; i++){
 		getField(page, i*sizeof(int), sizeof(int), offset_from_table);
 		slots[i] = *(int*)offset_from_table;
@@ -259,7 +259,7 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
     }
     
 
-	rid.pageNum = 1;
+	rid.pageNum = 1;	//hard coded page num
 	rid.slotNum = ridSlot;
     fileHandle.writePage(rid.pageNum, page);
     return 0;
