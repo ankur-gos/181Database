@@ -1,7 +1,5 @@
 #include "rbfm.h"
 #include "pfm.h"
-#include <math.h>	//for ceiling()
-#include <cstring>	//for memcpy
 
 RecordBasedFileManager* RecordBasedFileManager::_rbf_manager = 0;
 
@@ -92,6 +90,20 @@ RC getField(const void* data, const int offset, const int length, void*& field)
 	memcpy(field, (void*)(((char*)data)+offset), length * sizeof(char));
 
 	return 0;
+}
+
+
+//reverse of getField
+//puts a field into the given slot in data
+RC putField(void* data, const int offset, const int length, const void*& field)
+{
+
+	//Data should have plenty of space for things already
+	//	maybe? idk
+	//field = malloc(length * sizeof(char));
+	memcpy((void*)(((char*)data)+offset), field, length * sizeof(char));
+
+	return 0;
 } 
 
 
@@ -129,7 +141,7 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 			/* stuff to include information about null in written record,
  				likely something in the directory*/
 		}
-		//else, print the value
+		//else, store the value
 		else 
 		{
 			void* dataField;
@@ -184,6 +196,92 @@ RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attri
     //each record should probably begin with an array of ints that contain offsets from a local point (the front of the array or the first field?) to the beginning 
     //		of the field.
     //If we don't also have information about the recordDescriptor, then we'll need to also keep an offset to the end of the field so that we don't overrun the end of the field
+	
+	//this is going to do the opposite of insertRecord. We'll take a an organized record and stuff it back into *data the same way we received it. a null Byte
+
+	RC err = 0;			//to store most recent error
+	
+	int numAttr = recordDescriptor.size();	//get the number of attributes to find the number of bytes needed to describe the null attributes
+	int numNullBytes = ceil((float)numAttr/8.0);		//get the number of null bytes
+	void* nullBytes;	
+	vector<bool> nullAttr;
+
+	//jobs:
+	//	access file through RID
+	//	get nulls from record into bytes
+	//	put nulls into first bytes of data
+	//	pull data from record storage and put it into slots in data
+
+	
+	//************************************
+	//
+	//access RID here
+	//
+	//*****************************
+	
+	//****************************
+	//
+	//read null data into nullBytes
+	//
+	//****************************
+	
+	//may need to initialize *data before this point
+	putField(data, 0, numNullBytes, nullBytes);
+	
+	
+
+	unsigned offset = numNullBytes*sizeof(char);
+	for (int i = 0; i < numAttr; i++)
+	{
+		string attrName = recordDescriptor[i].name;
+		unsigned length = 4;	//I know there's a length in the recordDescriptor, but we always grab 4 bytes in the first grab of this program for varChar, int, and float
+			 //length = recordDescriptor[i].length;	//length is in # of bytes
+		cout<<attrName<<": ";
+		//if null, skip. nulls were indicated in the *data earlier
+		if (nullAttr[i] == 1)
+		{
+			/* if null, skip. indicated it was null earlier*/
+		}
+		//else, put the record into *data
+		else 
+		{
+			void* dataField;
+			dataField = malloc (/*something greater than max length*/);
+			switch(recordDescriptor[i].type)
+			{
+				case 0 :	
+					{
+						/*stuff to pull an int from the record*/
+						putField(data, offset, length, dataField);
+					}
+						break;
+			
+				case 1 :	
+					{
+						/*stuff to pull a float from the record*/
+						putField(data, offset, length, dataField);	
+					}	
+						break;
+			
+				case 2 :	
+					{
+						void* dataVarCharLength;
+						/*stuff to pull varCharLength from the record*/
+						putField(data, offset, length, varCharLength);
+						/*stuff to pull varCharData from the record*/
+						putField(data, offset+sizeof(int), *(int*)dataVarCharLength, dataField);
+
+
+						//the total length is not just the initial 4 bytes, but also the length of the VarChar
+						length = length + *(int*)dataVarCharLength;
+						free (dataVarCharLength);
+					}
+						break;
+			}
+			free (dataField);
+			offset = offset + length;
+		}
+	} 
 	return -1;
 }
 

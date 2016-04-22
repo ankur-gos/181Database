@@ -4,6 +4,9 @@
 #include <string>
 #include <vector>
 #include <climits>
+#include <math.h>	//for ceiling()
+#include <cstring>	//for memcpy
+
 
 #include "../rbf/pfm.h"
 
