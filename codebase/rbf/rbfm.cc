@@ -97,29 +97,83 @@ RC getField(const void* data, const int offset, const int length, void*& field)
 
 RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const void *data, RID &rid) {
 	
-/*	int numPages = -1;	//to find last page in the file
+	int numPages = -1;	//to find last page in the file
 	RC err = 0;			//to store most recent error
 	
 	int numAttr = recordDescriptor.size();	//get the number of attributes to find the number of bytes needed to describe the null attributes
-	int numNullBytes = ceil(numAttr/8);		//get the number of null bytes
-	int nullAttr = 	/**fix me		**/				//get which attributes are null
+	int numNullBytes = ceil((float)numAttr/8.0);		//get the number of null bytes
+	void* nullBytes;	
+	vector<bool> nullAttr;
 	
-/*	int numPages = fileHandle->getNumberOfPages();
-	err = fileHandle->writePage(numPages-1, 	///How do I determine the slot the file is written to.
-	if (err != 0)	
+	err = getField(data, 0, numNullBytes, nullBytes); //get nullBytes
+	if (err != 0)
 	{
-		if (err == /**page full**///)	/*page full*/
-/*		{
-			/**need to scan for new location here**/	//scan for open slot elsewhere.
-/*		}
-		else return (1);	//return error code, for bad write
+		return (1);	//return error, bad data grab, currently no way for getting here. if you receive this error, something serious has broken
 	}
+	err = getNullAttr(numNullBytes, nullBytes, nullAttr);
+	if (err != 0)
+	{
+		return (2);	//return error, bad null bytes, currently no way of getting here either. if you receive this error, something serious has broken
+	}
+
+	unsigned offset = numNullBytes*sizeof(char);
+	for (int i = 0; i < numAttr; i++)
+	{
+		string attrName = recordDescriptor[i].name;
+		unsigned length = 4;	//I know there's a length in the recordDescriptor, but we always grab 4 bytes in the first grab of this program for varChar, int, and float
+			 //length = recordDescriptor[i].length;	//length is in # of bytes
+		cout<<attrName<<": ";
+		//if null, indicate that in the record
+		if (nullAttr[i] == 1)
+		{
+			/* stuff to include information about null in written record,
+ 				likely something in the directory*/
+		}
+		//else, print the value
+		else 
+		{
+			void* dataField;
+			getField(data, offset, length, dataField);
+			switch(recordDescriptor[i].type)
+			{
+				case 0 :	
+					{
+						/*stuff to put an int into the record*/
+					}
+						break;
+			
+				case 1 :	
+					{
+						/*stuff to put a float into the record*/	
+					}	
+						break;
+			
+				case 2 :	
+					{
+						void* dataVarCharLength = dataField;
+						string dataVarChar;
+
+						getField(data, offset+sizeof(int), *(int*)dataVarCharLength, dataField);
+						dataVarChar.assign((char*)dataField, *(int*)dataVarCharLength);		
+
+						/*stuff to put a var char into the record*/
+
+						//the total length is not just the initial 4 bytes, but also the length of the VarChar
+						length = length + *(int*)dataVarCharLength;
+						free (dataVarCharLength);
+					}
+						break;
+			}
+			free (dataField);
+			offset = offset + length;
+		}
+	} 
 
 	
 	
 	
-	rid.pageNum = /**get page from somewhere**/	//something
-/*	rid.slotNum = /**get slot from somewhere**/	//something so that the record can be found again in the future
+//	rid.pageNum = 	//something
+//	rid.slotNum = 	//something so that the record can be found again in the future
       return -1;
 }
 
