@@ -95,7 +95,7 @@ RC getField(const void* data, const int offset, const int length, void*& field)
 
 //reverse of getField
 //puts a field into the given slot in data
-RC putField(void* data, const int offset, const int length, const void*& field)
+RC putField(void*& data, const int offset, const int length, const void* field)
 {
 
 	//Data should have plenty of space for things already
@@ -246,7 +246,7 @@ RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attri
 		else 
 		{
 			void* dataField;
-			dataField = malloc (/*something greater than max length*/);
+			dataField = malloc (100);	//this is currently bigger than everything, but should be redefined in a safer way
 			switch(recordDescriptor[i].type)
 			{
 				case 0 :	
@@ -267,7 +267,7 @@ RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attri
 					{
 						void* dataVarCharLength;
 						/*stuff to pull varCharLength from the record*/
-						putField(data, offset, length, varCharLength);
+						putField(data, offset, length, dataVarCharLength);
 						/*stuff to pull varCharData from the record*/
 						putField(data, offset+sizeof(int), *(int*)dataVarCharLength, dataField);
 
