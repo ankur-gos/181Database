@@ -76,7 +76,7 @@ RC getNullAttr(const int numNullBytes, const void* nullBytes, vector<bool>& null
 //
 //returns a void pointer to a field that contains the field data and only the field you are looking for.
 //must be recast as the field you're looking for in order to use
-//
+//`
 //must be called twice on a VarChar. Once to get the 4 byte int the preceeds the data
 //	and a second time using that int as the length of the var char and with an offset that is sizeof(int) greater than the initial offset
 //	ex:
@@ -185,7 +185,7 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 		if (nullAttr[i] == 1)
 		{
 			//negative offset in slot table == null
-            slots[i+1] = -1;
+            		slots[i+1] = -1;
 		}
 		//else, store the value
 		else 
@@ -196,12 +196,12 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 			{
 				case 0 :	
 					{
-                        for (int j = ridSlot+i+1; j>ridSlot; j--){
-                            //each record's offset is affected by subsequent records so
-                            // we update slot[record]<slot[current]
-                            slots[j] -= sizeof(int);
-                        }
-                        //slots[ridSlot]
+                        			for (int j = ridSlot+i+1; j>ridSlot; j--){
+                           			//each record's offset is affected by subsequent records so
+                            			// we update slot[record]<slot[current]
+                            			slots[j] -= sizeof(int);
+                        			}
+                        			//slots[ridSlot]
 						putField(record, total_length, sizeof(int), dataField);
 
 					}
@@ -210,11 +210,11 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 				case 1 :	
 					{
 						for (int j = ridSlot+i+1; j>ridSlot; j--){
-                            //each record's offset is affected by subsequent records so
-                            // we update slot[record]<slot[current]
-                            slots[j] -= sizeof(int);
-                        }
-                        putField(record, total_length, sizeof(float), dataField);
+                            				//each record's offset is affected by subsequent records so
+                            				// we update slot[record]<slot[current]
+                            				slots[j] -= sizeof(int);
+                        			}
+                        			putField(record, total_length, sizeof(float), dataField);
 					}	
 						break;
 			
@@ -296,9 +296,9 @@ RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attri
 	//*****************************
 	
 	//****************************
-	//
+	nullBytes = malloc(numNullBytes);
 	//read null data into nullBytes
-	//
+	getNullAttr(numNullBytes, nullBytes, nullAttr);
 	//****************************
 	
 	//may need to initialize *data before this point
