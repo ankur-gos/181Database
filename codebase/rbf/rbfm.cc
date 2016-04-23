@@ -176,6 +176,18 @@ vector<int> RecordBasedFileManager::getPageViability(FileHandle &fileHandle, uns
 // Check for page with available slots, then check if there are adequate bytes
 vector<int> RecordBasedFileManager::getPageSlotByte(FileHandle &fileHandle, unsigned numberOfSlots, unsigned bytesNeeded){
     unsigned lastPage = fileHandle.getNumberOfPages() - 1;
+    // no pages yet, append a page
+    if(lastPage == -1){
+        void *newPage = malloc(PAGE_SIZE);
+        memset(newPage, -2, PAGE_SIZE);
+        fileHandle.appendPage(newPage);
+        free(newPage);
+        vector<int> r;
+        r.push_back(0);
+        r.push_back(0);
+        r.push_back(0);
+        return r;
+    }
     vector<int> viable = this->getPageViability(fileHandle, numberOfSlots, bytesNeeded, lastPage);
     if(viable[0]){
         vector<int> r;
@@ -196,7 +208,8 @@ vector<int> RecordBasedFileManager::getPageSlotByte(FileHandle &fileHandle, unsi
             }
         }
         // All pages are full, allocate a page and append it.
-        void *newPage = calloc(PAGE_SIZE, 1);
+        void *newPage = malloc(PAGE_SIZE);
+        memset(newPage, -2, PAGE_SIZE);
         fileHandle.appendPage(newPage);
         free(newPage);
         vector<int> r;
@@ -281,7 +294,7 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 
 	slots[0] = pageSlotByte[2];
 
-	putField(page, PAGE_SIZE-400-1+pageSlotByte[1], numAttr+1, (void*)slots);
+	putField(page, PAGE_SIZE-400-1+pageSlotByte[1], (numAttr+1)*sizeof(int), (void*)slots);
 
 	
 
