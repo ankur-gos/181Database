@@ -105,9 +105,6 @@ RC _getField(const void* data, const int offset, const int length, void*& field)
 RC putField(void*& data, const int offset, const int length, const void* field)
 {
 
-	//Data should have plenty of space for things already
-	//	maybe? idk
-	//field = malloc(length * sizeof(char));
 	memcpy((void*)(((char*)data)+offset), field, length * sizeof(char));
 
 	return 0;
@@ -116,8 +113,6 @@ RC putField(void*& data, const int offset, const int length, const void* field)
 
 RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const void *data, RID &rid) {
 	// read in page, write records to 
-    cerr<<"start";
-	int numPages = -1;	//to find last page in the file
 	RC err = 0;			//to store most recent error
 	
 	int numAttr = recordDescriptor.size();	//get the number of attributes to find the number of bytes needed to describe the null attributes
@@ -136,76 +131,23 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 	}
     
 	void *page = malloc(PAGE_SIZE);
-    memset(page, 0, PAGE_SIZE);
+    	memset(page, 0, PAGE_SIZE);
 
-    void *record = malloc(PAGE_SIZE);
-    memset(record, 0, PAGE_SIZE);
-
-	void *offset_from_table = malloc(sizeof(int));
-	int *slots = (int*)calloc(100, sizeof(int)); //arbitrary length
+	int *slots = (int*)calloc(numAttr+1, sizeof(int)); //arbitrary length
 	
-    //assume we have enough space in page 1 for now (not implemented)
-    //because we know the length of the slot table and that the end of the page is 
-    // filed with data, we can calculate free space = page_size - smallest_offset - slot table
-    // if we see there isnt' enough space, we can change page number.
-    // put this page determination in a loop.
-	fileHandle.readPage(1, page);	//hard coded page num
-	for (int i = 0; i<100; i++){
-		getField(page, i*sizeof(int), sizeof(int), offset_from_table);
-		slots[i] = *(int*)offset_from_table;
-	}
-	// 1st slot = number of attrs. next n slots = offset for each attribute
-    // numberattributes + 1 = slots per record
-	int ridSlot = 0;
-	int smallestOffset = PAGE_SIZE; //find closest record so we can insert directly before it. our record will be at offset-length of our record
-    int ridFlag = 1;
-	for (int i = 0; i<100; i++){
-		if (slots[i] == 0)
-		{
-            int breakflag = 0;
-            // check if there are enough slots for this record
-            for(int j = i+1; j <= i + numAttr; j++){
-                if(slots[j] != 0){
-                    breakflag = 1;
-                    break;
-                }
-            }
-            if(breakflag)
-                break;
-            // Great, we've found an empty location we can insert into
-            if(ridFlag){
-                ridSlot = i;
-                // Can't have a negative offset
-                // Lets us diffferentiate between an numAttr slot
-                // and an offset slot for smallestOffset
-                slots[i] = -numAttr - 1;
-                ridFlag = 0;
-            }
-		}
-		else {
-            if (slots[i] < smallestOffset && slots[i] > 0)
-			    smallestOffset = slots[i];
-		}
-	}
-    slots[ridSlot + 1] = smallestOffset;
-    // To determine the offset of our first field, we'll need to lookup what is at the smallestOffset and calculate its size
-    for (int i =1; i<=numAttr; i++){
-        slots[ridSlot+i] = smallestOffset;
-        // Update smallest offset
-    }
-	int total_length = 0;
+	
 	unsigned offset = numNullBytes*sizeof(char);
 	for (int i = 0; i < numAttr; i++)
 	{
 		string attrName = recordDescriptor[i].name;
-		unsigned length = 4;	//I know there's a length in the recordDescriptor, but we always grab 4 bytes in the first grab of this program for varChar, int, and float
-			 //length = recordDescriptor[i].length;	//length is in # of bytes
+		unsigned length = 4;	//I know there's a length in the recordDescriptor, 
+					//but we always grab 4 bytes in the first grab of this program for varChar, int, and float
 		cerr<<attrName<<": ";
 		//if null, indicate that in the record
 		if (nullAttr[i] == 1)
 		{
 			//negative offset in slot table == null
-            slots[i+1] = -1;
+            		slots[i+1] = -1;
 		}
 		//else, store the value
 		else 
@@ -216,92 +158,43 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 			{
 				case 0 :	
 					{
-            			for (int j = ridSlot+i+1; j>ridSlot; j--){
-               			//each record's offset is affected by subsequent records so
-                			// we update slot[record]<slot[current]
-                			slots[j] -= sizeof(int);
-            			}
-            			//slots[ridSlot]
-						putField(record, total_length, sizeof(int), dataField);
-                        cerr<<*(int*)dataField;
-
 					}
 						break;
 			
 				case 1 :	
 					{
-						for (int j = ridSlot+i+1; j>ridSlot; j--){
-                            				//each record's offset is affected by subsequent records so
-                            				// we update slot[record]<slot[current]
-                            				slots[j] -= sizeof(int);
-                        			}
-                        			putField(record, total_length, sizeof(float), dataField);
-                                    cerr<<*(float*)dataField;
 					}	
 						break;
 			
 				case 2 :	
 					{
-						void* dataVarCharLength = dataField;
-						string dataVarChar;
-
-						getField(data, offset+sizeof(int), *(int*)dataVarCharLength, dataField);
-						dataVarChar.assign((char*)dataField, *(int*)dataVarCharLength);		
-                        cerr<<dataVarChar;
-                        cerr<<"\n";
-                        cerr<<*(int*)dataVarCharLength;
-                        cerr<<"\n";
-						// append dataVarChar, update each slot -= length, set our slot to end -= length
-
-						//the total length is not just the initial 4 bytes, but also the length of the VarChar
-                        for (int j = ridSlot+i+1; j>ridSlot; j--){
-                            //each record's offset is affected by subsequent records so
-                            // we update slot[record]<slot[current]
-                            slots[j] -= *(int*)dataVarCharLength;
-                        }
-                        // record is not being written to correctly
-                        putField(record, total_length, sizeof(int), dataVarCharLength);
-                        cerr<<*(char*)record;
-                        cerr<<"asdfdsfdf";
-                        for (int j = ridSlot+i+1; j>ridSlot; j--){
-                            //each record's offset is affected by subsequent records so
-                            // we update slot[record]<slot[current]
-                            slots[j] -= sizeof(int);
-                        }
-
-						putField(record, total_length+sizeof(int), *(int*)dataVarCharLength, dataField);
-                        length = length + *(int*)dataVarCharLength*sizeof(char); //leading int already factored in
-						free (dataVarCharLength);
+                        			length = length + *(int*)dataField*sizeof(char); //leading int already factored in
 					}
 						break;
 			}
 			free (dataField);
 			offset = offset + length;
-			total_length += length;
-
-            cerr<<"\n";
-            cerr<<"offset : ";
-            cerr<<offset;
-            cerr<<"\n";
-            cerr<<"length : ";
-            cerr<<length;
-            cerr<<"\n";
-            cerr<<"total len : ";
-            cerr<<total_length;
-            cerr<<"\n";
+			slots[i+1] = offset;
 		}
 	}
-    putField(page, slots[ridSlot], total_length, record);//update record
+	
+	vector<int> pageSlotByte;
+	pageSlotByte =  getPageWithRoom(fileHandle, numAttr+1, offset);
+	fileHandle.readPage(pageSlotByte[0], page);	
+	putField(page, pageSlotByte[2], offset, data);
 
-    for (int i = ridSlot; i <= ridSlot+numAttr; i++){//update the slots
-        putField(page, i*sizeof(int), sizeof(int), &slots[i]);
-    }
-    
+	slots[0] = pageSlotByte[2];
 
-	rid.pageNum = 1;	//hard coded page num
-	rid.slotNum = ridSlot;
-    fileHandle.writePage(rid.pageNum, page);
-    return 0;
+	putField(page, PAGE_SIZE-400-1+pageSlotByte[1], numAttr+1, (void*)slots);
+
+	
+
+   	 
+
+	rid.pageNum = pageSlotByte[0];	
+	rid.slotNum = pageSlotByte[1];
+    	fileHandle.writePage(rid.pageNum, page);
+    	return 0;
 }
 
 RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const RID &rid, void *data) {
