@@ -214,15 +214,15 @@ RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attri
     int ridSlot = startOfSlots + rid.slotNum*sizeof(int);
     int lastSlot = ridSlot + numAttr*(sizeof(int));
 
-    //get offset to record start
+    //get offset to record start. Absolute offset from beginning of page
     void *recordStart = calloc(1, sizeof(int));
     getField(page, ridSlot, sizeof(int), recordStart);
 
-    //get offset to record end
+    //get offset to record end. This is relative to record start
     void *recordEnd = calloc(1, sizeof(int));
     getField(page, lastSlot, sizeof(int), recordEnd);
 
-    int totalSize = (*(int*)recordEnd-*(int*)recordStart);
+    int totalSize = *(int*)recordEnd;
     getField(page, *(char*)recordStart, totalSize, data);
     return 0;
 }
