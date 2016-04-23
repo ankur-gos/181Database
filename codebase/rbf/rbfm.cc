@@ -281,7 +281,7 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 
 	slots[0] = pageSlotByte[2];
 
-	putField(page, PAGE_SIZE-400-1+pageSlotByte[1], numAttr+1, (void*)slots);
+	putField(page, PAGE_SIZE-400-1+pageSlotByte[1], (numAttr+1)*sizeof(int), (void*)slots);
 
 	
 
