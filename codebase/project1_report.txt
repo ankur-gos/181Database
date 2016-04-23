@@ -7,23 +7,29 @@ Team number: 5
 2. Internal Record Format
 - Show your record format design and describe how your design satisfies O(1) field access. If not, just mention that you haven't implemented this feature.
 
-Our record format consists of two parts. Our slot table is static length at the end of the file to 
-simplify operations. The slot table 
+Each page has a slot table. A record in the slot table consists of the the start byte of the record in the first slot. For n attributes, the next n slots in the slot table are occupied by the end byte of the attribute data. Records in the page are separated by a value of -2 (-1 in the page table denotes a NULL value). This helps for finding the end of the record. Lookups given a record descriptor and record id are O(1) because we can lookup the record in O(1) time using our slot table on the page number, and reading the size of the record (given from record descriptor).
 
-Our internal design has the data at the beginning 
 - Describe how you store a VarChar field.
 
-We store VarChars as an integer followed by the character. The integer gives us the number of 
-character that follow, so our total space usage for an N character field is sizeof(int)+(N*sizeof(char))
+A varchar value has the size of the of the varchar preceding the varchar. A lookup for the varchar first looks up the size, then reads the subsequent size of bytes. 
+
+Our total space usage for an N character field is sizeof(int)+(N*sizeof(char))
 
 3. Page Format
 - Show your page format design
 
+Pages are designated a 100 slot page table and are 4096 bytes. Because we have a static slot table, we know that the first 3696 bytes are data and the last 400 bytes are the slot table. The fallback of not using a growing slot table is that if we don’t have space in the slot table, we can’t store it on the page, which means that we might underutilize space on the page. However, the pros, which given the time constraint was appropriate to us, is that we don’t have to maintain the growing slot table. In this project we don’t deal with deletions, so we don’t have to maintain free space that gets out of the middle. All of our free space is in the middle.
 
 4. Implementation Detail
 - Other implementation details goes here.
 
+For insert record, we calculate the number of slots needed and the bytes needed, and pass it off to a function which returns the page, slot, and byte that are free. From there writing is pretty trivial.
+
+Note that our empty pages are fully -2s. This is because it’s easier to memset an entire page rather than just the slot table. It does not affect writing because we know where and how much to write. And if we’re reading we know where and how much to read. Again, -2s in our slot table separate records in the slot table. We need to separate the records. This design decision was necessary to find the greatest byte available to write to. Having -2’s lets us iterate over our slot table to find the least available slot (since all our free space is in the middle). Iterating over the slot table instead of the data is much better.
 
 5. Other (optional)
 - Freely use this section to tell us about other things related to the project 1 (optional)
 
+This was a fun project!
+
+We struggled a lot with debugging. We spent a lot of time in the debugger to do arithmetic to convert between hex and decimal.
