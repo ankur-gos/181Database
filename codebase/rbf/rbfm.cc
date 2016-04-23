@@ -108,7 +108,104 @@ RC putField(void*& data, const int offset, const int length, const void* field)
 	memcpy((void*)(((char*)data)+offset), field, length * sizeof(char));
 
 	return 0;
-} 
+}
+
+vector<int> RecordBasedFileManager::getPageViablity(Filehandle &fileHandle, unsigned numberOfSlots, unsigned bytesNeeded, int pageNumber){
+    vector<int> values;
+    void *page = malloc(PAGE_SIZE);
+    memset(page, 0, PAGE_SIZE);
+    fileHandle.read(pageNumber, page);
+    void *slot = malloc(sizeof(int));
+    int slots[100];
+    // Page table is 400 bytes
+    for(int i = 0; i < 100; i++){
+        getField(page, 3696 + i*sizeof(int), sizeof(int), slot);
+        slots[i] = *(int*)slot;
+    }
+    int consecutiveSlotCount = 0;
+    int available = 0;
+    int first = 1;
+    int slot_location = 0;
+    for(int i = 0; i < 100; i++){
+        if(slots[i] == -2){
+            if(first){
+                slot_location = i + 1;
+            }
+            consecutiveSlotCount++;
+        } else{
+            first = 1;
+            consecutiveSlotCount = 0;
+        }
+
+        if(consecutiveSlotCount == numberOfSlots + 2){
+            available = 1;
+            break;
+        }
+    }
+    free(slot);
+
+    int first2 = 1;
+    int base = -2;
+    int max = 0;
+    for(int i = 0; i < 100; i++){
+        if(slots[i] != -2){
+            if(first2){
+                base = i;
+                if(base > max)
+                    max = base;
+                first2 = 0;
+            } else{
+                if(base + slots[i] > max)
+                    max = base + slots[i];
+            }
+        } else{
+            first2 = 1;
+        }
+    }
+
+    if(3695 - max < bytesNeeded){
+        available = 0;
+    }
+    values.push_back(available);
+    values.push_back(pageNumber)
+    values.push_back(slot_location);
+    values.push_back(max + 1);
+    return values;
+}
+
+// Check for page with available slots, then check if there are adequate bytes
+vector<int> RecordBasedFileManager::getPageSlotByte(Filehandle &fileHandle, unsigned numberOfSlots, unsigned bytesNeeded){
+    unsigned lastPage = fileHandle.numberOfPages() - 1;
+    vector<int> viable = this->getPageViability(fileHandle, numberOfSlots, bytesNeeded, lastPage);
+    if(viable[0]){
+        vector<int> r;
+        r.push_back(viable[1]);
+        r.push_back(viable[2]);
+        r.push_back(viable[3]);
+        return r;
+    }
+    else{
+        for(int i = 0; i < fileHandle.numberOfPages(); i++){
+            viable = this->getPageViability(fileHandle, numberOfSlots, bytesNeeded, i);
+            if(viable[0]){
+                vector<int> r;
+                r.push_back(viable[1]);
+                r.push_back(viable[2]);
+                r.push_back(viable[3]);
+                return r;
+            }
+        }
+        // All pages are full, allocate a page and append it.
+        void *newPage = calloc(PAGE_SIZE, 1);
+        fileHandle->appendPage(newPage);
+        free(newPage);
+        vector<int> r;
+        r.push_back(fileHandle.numberOfPages() - 1);
+        r.push_back(0);
+        r.push_back(0);
+        return r;
+    }
+}
 
 
 RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const void *data, RID &rid) {
@@ -136,6 +233,60 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 	int *slots = (int*)calloc(numAttr+1, sizeof(int)); //arbitrary length
 	
 	
+<<<<<<< HEAD
+    // assume we have enough space in page 1 for now (not implemented)
+    // because we know the length of the slot table and that the end of the page is 
+    // filed with data, we can calculate free space = page_size - smallest_offset - slot table
+    // if we see there isnt' enough space, we can change page number.
+    // put this page determination in a loop.
+
+	fileHandle.readPage(1, page);
+	for (int i = 0; i < 100; i++){
+		getField(page, i*sizeof(int), sizeof(int), offset_from_table);
+		slots[i] = *(int*)offset_from_table;
+	}
+	// 1st slot = number of attrs. next n slots = offset for each attribute
+    // numberattributes + 1 = slots per record
+	int ridSlot = 0;
+	int smallestOffset = PAGE_SIZE; //find closest record so we can insert directly before it. our record will be at offset-length of our record
+    int ridFlag = 1;
+	for (int i = 0; i<100; i++){
+		if (slots[i] == 0)
+		{
+            int breakflag = 0;
+            // check if there are enough slots for this record
+            for(int j = i+1; j <= i + numAttr; j++){
+                if(slots[j] != 0){
+                    breakflag = 1;
+                    break;
+                }
+            }
+            if(breakflag)
+                break;
+            // Great, we've found an empty location we can insert into
+            if(ridFlag){
+                ridSlot = i;
+                // Can't have a negative offset
+                // Lets us diffferentiate between an numAttr slot
+                // and an offset slot for smallestOffset
+                slots[i] = -numAttr - 1;
+                ridFlag = 0;
+            }
+		}
+		else {
+            if (slots[i] < smallestOffset && slots[i] > 0)
+			    smallestOffset = slots[i];
+		}
+	}
+    slots[ridSlot + 1] = smallestOffset;
+    // To determine the offset of our first field, we'll need to lookup what is at the smallestOffset and calculate its size
+    for (int i =1; i<=numAttr; i++){
+        slots[ridSlot+i] = smallestOffset;
+        // Update smallest offset
+    }
+	int total_length = 0;
+=======
+>>>>>>> 32f2b74cec3c83ea8ac4075c3b44f4c1b32b7419
 	unsigned offset = numNullBytes*sizeof(char);
 	for (int i = 0; i < numAttr; i++)
 	{
@@ -163,6 +314,16 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 			
 				case 1 :	
 					{
+<<<<<<< HEAD
+						for (int j = ridSlot+i+1; j>ridSlot; j--){
+            				//each record's offset is affected by subsequent records so
+            				// we update slot[record]<slot[current]
+            				slots[j] -= sizeof(int);
+            			}
+            			putField(record, total_length, sizeof(float), dataField);
+                        cerr<<*(float*)dataField;
+=======
+>>>>>>> 32f2b74cec3c83ea8ac4075c3b44f4c1b32b7419
 					}	
 						break;
 			
