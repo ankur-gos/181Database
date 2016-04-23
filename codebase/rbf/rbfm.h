@@ -128,6 +128,10 @@ IMPORTANT, PLEASE READ: All methods below this comment (other than the construct
       const vector<string> &attributeNames, // a list of projected attributes
       RBFM_ScanIterator &rbfm_ScanIterator);
 
+private:
+  vector<int> getPageViability(FileHandle &fileHandle, unsigned numberOfSlots, unsigned bytesNeeded, int pageNumber);
+  vector<int> getPageSlotByte(FileHandle &fileHandle, unsigned numberOfSlots, unsigned bytesNeeded);
+
 public:
 
 protected:
