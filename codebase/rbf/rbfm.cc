@@ -232,61 +232,6 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 
 	int *slots = (int*)calloc(numAttr+1, sizeof(int)); //arbitrary length
 	
-	
-<<<<<<< HEAD
-    // assume we have enough space in page 1 for now (not implemented)
-    // because we know the length of the slot table and that the end of the page is 
-    // filed with data, we can calculate free space = page_size - smallest_offset - slot table
-    // if we see there isnt' enough space, we can change page number.
-    // put this page determination in a loop.
-
-	fileHandle.readPage(1, page);
-	for (int i = 0; i < 100; i++){
-		getField(page, i*sizeof(int), sizeof(int), offset_from_table);
-		slots[i] = *(int*)offset_from_table;
-	}
-	// 1st slot = number of attrs. next n slots = offset for each attribute
-    // numberattributes + 1 = slots per record
-	int ridSlot = 0;
-	int smallestOffset = PAGE_SIZE; //find closest record so we can insert directly before it. our record will be at offset-length of our record
-    int ridFlag = 1;
-	for (int i = 0; i<100; i++){
-		if (slots[i] == 0)
-		{
-            int breakflag = 0;
-            // check if there are enough slots for this record
-            for(int j = i+1; j <= i + numAttr; j++){
-                if(slots[j] != 0){
-                    breakflag = 1;
-                    break;
-                }
-            }
-            if(breakflag)
-                break;
-            // Great, we've found an empty location we can insert into
-            if(ridFlag){
-                ridSlot = i;
-                // Can't have a negative offset
-                // Lets us diffferentiate between an numAttr slot
-                // and an offset slot for smallestOffset
-                slots[i] = -numAttr - 1;
-                ridFlag = 0;
-            }
-		}
-		else {
-            if (slots[i] < smallestOffset && slots[i] > 0)
-			    smallestOffset = slots[i];
-		}
-	}
-    slots[ridSlot + 1] = smallestOffset;
-    // To determine the offset of our first field, we'll need to lookup what is at the smallestOffset and calculate its size
-    for (int i =1; i<=numAttr; i++){
-        slots[ridSlot+i] = smallestOffset;
-        // Update smallest offset
-    }
-	int total_length = 0;
-=======
->>>>>>> 32f2b74cec3c83ea8ac4075c3b44f4c1b32b7419
 	unsigned offset = numNullBytes*sizeof(char);
 	for (int i = 0; i < numAttr; i++)
 	{
@@ -314,16 +259,6 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 			
 				case 1 :	
 					{
-<<<<<<< HEAD
-						for (int j = ridSlot+i+1; j>ridSlot; j--){
-            				//each record's offset is affected by subsequent records so
-            				// we update slot[record]<slot[current]
-            				slots[j] -= sizeof(int);
-            			}
-            			putField(record, total_length, sizeof(float), dataField);
-                        cerr<<*(float*)dataField;
-=======
->>>>>>> 32f2b74cec3c83ea8ac4075c3b44f4c1b32b7419
 					}	
 						break;
 			
