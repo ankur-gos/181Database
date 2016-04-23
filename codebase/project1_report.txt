@@ -1,13 +1,20 @@
 1. Basic information
 Student ID of submitter: 
 Student Name of submitter: 
-Team number :
+Team number: 5
 
 
 2. Internal Record Format
 - Show your record format design and describe how your design satisfies O(1) field access. If not, just mention that you haven't implemented this feature.
+
+Our record format consists of two parts. Our slot table is static length at the end of the file to 
+simplify operations. The slot table 
+
+Our internal design has the data at the beginning 
 - Describe how you store a VarChar field.
 
+We store VarChars as an integer followed by the character. The integer gives us the number of 
+character that follow, so our total space usage for an N character field is sizeof(int)+(N*sizeof(char))
 
 3. Page Format
 - Show your page format design
