@@ -251,7 +251,6 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 		string attrName = recordDescriptor[i].name;
 		unsigned length = 4;	//I know there's a length in the recordDescriptor, 
 					//but we always grab 4 bytes in the first grab of this program for varChar, int, and float
-		cerr<<attrName<<": ";
 		//if null, indicate that in the record
 		if (nullAttr[i] == 1)
 		{
@@ -321,18 +320,28 @@ RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attri
 
     //first and last slots relevant to our data.
     int ridSlot = startOfSlots + rid.slotNum*sizeof(int);
-    int lastSlot = ridSlot + numAttr*(sizeof(int));
 
     //get offset to record start. Absolute offset from beginning of page
     void *recordStart = calloc(1, sizeof(int));
     getField(page, ridSlot, sizeof(int), recordStart);
 
     //get offset to record end. This is relative to record start
-    void *recordEnd = calloc(1, sizeof(int));
-    getField(page, lastSlot, sizeof(int), recordEnd);
+    int* slotArray = (int*)calloc(numAttr+1, sizeof(int));
 
-    int totalSize = *(int*)recordEnd;
-    getField(page, *(int*)recordStart, totalSize, data);
+    getField(page, ridSlot, (numAttr+1)*sizeof(int), (void*&)slotArray);
+
+    int numNullBytes = ceil((float)numAttr/8.0);
+
+    int totalSize = numNullBytes;
+    for( int i = 1 ; i<= numAttr + 1; i++){
+        //(void*)(((char*)data)+offset)
+        //cout<<slotArray[i]<<endl;
+        if( slotArray[i] > totalSize){
+            totalSize = slotArray[i];
+        }
+    }
+
+    _getField(page, *(int*)recordStart, totalSize, data);
     return 0;
 }
 
