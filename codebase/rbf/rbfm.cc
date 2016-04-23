@@ -285,7 +285,7 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 
 	
 
-   	 
+   
 
 	rid.pageNum = pageSlotByte[0];	
 	rid.slotNum = pageSlotByte[1];
@@ -301,7 +301,7 @@ RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attri
     fileHandle.readPage(rid.pageNum, page);
 
     //offset to slots
-    int startOfSlots = PAGE_SIZE-400;
+    int startOfSlots = PAGE_SIZE-400-1;
 
     //number attributes
     int numAttr = recordDescriptor.size();
@@ -319,7 +319,7 @@ RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attri
     getField(page, lastSlot, sizeof(int), recordEnd);
 
     int totalSize = *(int*)recordEnd;
-    getField(page, *(char*)recordStart, totalSize, data);
+    getField(page, *(int*)recordStart, totalSize, data);
     return 0;
 }
 
